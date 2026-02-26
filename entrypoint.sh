@@ -2,10 +2,18 @@
 set -e
 
 echo "Waiting for database..."
-until python -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(('db', 5432))" 2>/dev/null; do
-  echo "Database (db:5432) is unavailable - sleeping"
+
+# DATABASE_URL માંથી હોસ્ટ અને પોર્ટ કાઢવા માટે પાયથોન સ્ક્રિપ્ટ
+DB_HOST=$(python -c "from urllib.parse import urlparse; import os; url = urlparse(os.environ.get('DATABASE_URL', 'postgres://db:5432')); print(url.hostname)")
+DB_PORT=$(python -c "from urllib.parse import urlparse; import os; url = urlparse(os.environ.get('DATABASE_URL', 'postgres://db:5432')); print(url.port or 5432)")
+
+echo "Checking connection to $DB_HOST:$DB_PORT..."
+
+until python -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(2); s.connect(('$DB_HOST', int('$DB_PORT')))" 2>/dev/null; do
+  echo "Database ($DB_HOST:$DB_PORT) is unavailable - sleeping"
   sleep 1
 done
+
 echo "Database is up!"
 
 echo "Running migrations..."
