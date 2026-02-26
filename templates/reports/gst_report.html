@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block page_title %}GST Report{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 fw-bold">GST Report</h5>
+    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print"><i class="bi bi-printer me-1"></i>Print</button>
+</div>
+
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1 small">From Date</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1 small">To Date</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i>Show</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- GST Summary Cards -->
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card text-center p-3" style="border-left: 4px solid #2563eb;">
+            <div class="text-muted small">Taxable Value</div>
+            <div class="fw-bold fs-5">₹{{ total_taxable|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center p-3" style="border-left: 4px solid #059669;">
+            <div class="text-muted small">CGST</div>
+            <div class="fw-bold fs-5 text-success">₹{{ total_cgst|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center p-3" style="border-left: 4px solid #7c3aed;">
+            <div class="text-muted small">SGST</div>
+            <div class="fw-bold fs-5" style="color:#7c3aed">₹{{ total_sgst|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center p-3" style="border-left: 4px solid #dc2626;">
+            <div class="text-muted small">IGST</div>
+            <div class="fw-bold fs-5 text-danger">₹{{ total_igst|floatformat:2 }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h6>GST Transaction Details ({{ date_from }} to {{ date_to }})</h6></div>
+    <div class="table-responsive">
+        <table class="table report-table mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Voucher</th>
+                    <th>Account</th>
+                    <th>GST Type</th>
+                    <th class="text-end">Rate %</th>
+                    <th class="text-end">Taxable (₹)</th>
+                    <th class="text-end">CGST (₹)</th>
+                    <th class="text-end">SGST (₹)</th>
+                    <th class="text-end">IGST (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for line in gst_lines %}
+                <tr>
+                    <td>{{ line.voucher.date|date:"d M Y" }}</td>
+                    <td><a href="{% url 'voucher_detail' line.voucher.pk %}" class="text-primary">{{ line.voucher.voucher_number }}</a></td>
+                    <td>{{ line.account.name }}</td>
+                    <td><span class="badge {% if line.gst_type == 'intra' %}bg-primary{% else %}bg-warning text-dark{% endif %}">
+                        {% if line.gst_type == 'intra' %}Intra-State{% else %}Inter-State{% endif %}</span></td>
+                    <td class="text-end">{{ line.gst_rate }}%</td>
+                    <td class="text-end">₹{{ line.taxable_value|floatformat:2 }}</td>
+                    <td class="text-end text-success">₹{{ line.cgst_amount|floatformat:2 }}</td>
+                    <td class="text-end" style="color:#7c3aed">₹{{ line.sgst_amount|floatformat:2 }}</td>
+                    <td class="text-end text-danger">₹{{ line.igst_amount|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center text-muted py-4">No GST transactions found for this period.</td></tr>
+                {% endfor %}
+            </tbody>
+            {% if gst_lines %}
+            <tfoot>
+                <tr>
+                    <td colspan="5" class="fw-bold text-end">TOTALS:</td>
+                    <td class="text-end fw-bold">₹{{ total_taxable|floatformat:2 }}</td>
+                    <td class="text-end fw-bold text-success">₹{{ total_cgst|floatformat:2 }}</td>
+                    <td class="text-end fw-bold" style="color:#7c3aed">₹{{ total_sgst|floatformat:2 }}</td>
+                    <td class="text-end fw-bold text-danger">₹{{ total_igst|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endblock %}

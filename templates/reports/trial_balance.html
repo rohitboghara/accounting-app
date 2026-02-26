@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block page_title %}Trial Balance{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 fw-bold">Trial Balance</h5>
+    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print"><i class="bi bi-printer me-1"></i>Print</button>
+</div>
+
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label mb-1 small">As of Date</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i>Show</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0">Trial Balance — As of {{ date_to }}</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table report-table mb-0">
+            <thead>
+                <tr>
+                    <th rowspan="2">Code</th>
+                    <th rowspan="2">Account Name</th>
+                    <th colspan="2" class="text-center border-start border-end">Opening Balance</th>
+                    <th colspan="2" class="text-center border-end">Period Movement</th>
+                    <th colspan="2" class="text-center">Closing Balance</th>
+                </tr>
+                <tr>
+                    <th class="text-end border-start">Dr (₹)</th>
+                    <th class="text-end border-end">Cr (₹)</th>
+                    <th class="text-end">Dr (₹)</th>
+                    <th class="text-end border-end">Cr (₹)</th>
+                    <th class="text-end">Dr (₹)</th>
+                    <th class="text-end">Cr (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td><code>{{ row.account.code }}</code></td>
+                    <td class="fw-semibold">{{ row.account.name }}</td>
+                    <td class="text-end border-start">{% if row.ob_debit %}₹{{ row.ob_debit|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td class="text-end border-end">{% if row.ob_credit %}₹{{ row.ob_credit|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td class="text-end text-primary">{% if row.period_debit %}₹{{ row.period_debit|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td class="text-end text-success border-end">{% if row.period_credit %}₹{{ row.period_credit|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td class="text-end fw-semibold">{% if row.closing_debit %}₹{{ row.closing_debit|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td class="text-end fw-semibold">{% if row.closing_credit %}₹{{ row.closing_credit|floatformat:2 }}{% else %}-{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-3">No data found.</td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="fw-bold text-end">TOTALS:</td>
+                    <td class="text-end fw-bold border-start">₹{{ total_ob_debit|floatformat:2 }}</td>
+                    <td class="text-end fw-bold border-end">₹{{ total_ob_credit|floatformat:2 }}</td>
+                    <td class="text-end fw-bold text-primary">₹{{ total_debit|floatformat:2 }}</td>
+                    <td class="text-end fw-bold text-success border-end">₹{{ total_credit|floatformat:2 }}</td>
+                    <td class="text-end fw-bold">₹{{ total_closing_debit|floatformat:2 }}</td>
+                    <td class="text-end fw-bold">₹{{ total_closing_credit|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}

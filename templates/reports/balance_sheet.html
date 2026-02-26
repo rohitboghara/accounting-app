@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block page_title %}Balance Sheet{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 fw-bold">Balance Sheet</h5>
+    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print"><i class="bi bi-printer me-1"></i>Print</button>
+</div>
+
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label mb-1 small">As of Date</label>
+                <input type="date" name="as_of_date" class="form-control form-control-sm" value="{{ as_of_date }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i>Show</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if not balanced %}
+<div class="alert alert-warning no-print"><i class="bi bi-exclamation-triangle me-2"></i>Balance sheet is not balanced. Check for missing entries.</div>
+{% endif %}
+
+<div class="row g-3">
+    <!-- Left: Assets -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #eff6ff;">
+                <h6 class="mb-0 text-primary"><i class="bi bi-building me-2"></i>Assets</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table report-table mb-0">
+                    <tbody>
+                        {% for row in asset_rows %}
+                        <tr>
+                            <td><small class="text-muted">{{ row.account.code }}</small></td>
+                            <td>{{ row.account.name }}</td>
+                            <td class="text-end fw-semibold">₹{{ row.amount|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted py-3">No asset accounts.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-primary">
+                            <td colspan="2" class="fw-bold">Total Assets</td>
+                            <td class="text-end fw-bold text-primary">₹{{ total_assets|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Liabilities + Equity -->
+    <div class="col-md-6">
+        <!-- Liabilities -->
+        <div class="card mb-3">
+            <div class="card-header" style="background: #fff1f2;">
+                <h6 class="mb-0 text-danger"><i class="bi bi-credit-card me-2"></i>Liabilities</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table report-table mb-0">
+                    <tbody>
+                        {% for row in liability_rows %}
+                        <tr>
+                            <td><small class="text-muted">{{ row.account.code }}</small></td>
+                            <td>{{ row.account.name }}</td>
+                            <td class="text-end fw-semibold">₹{{ row.amount|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted py-3">No liability accounts.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-danger">
+                            <td colspan="2" class="fw-bold">Total Liabilities</td>
+                            <td class="text-end fw-bold text-danger">₹{{ total_liabilities|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Equity -->
+        <div class="card">
+            <div class="card-header" style="background: #f5f3ff;">
+                <h6 class="mb-0" style="color:#7c3aed"><i class="bi bi-person-badge me-2"></i>Equity</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table report-table mb-0">
+                    <tbody>
+                        {% for row in equity_rows %}
+                        <tr>
+                            <td><small class="text-muted">{{ row.account.code }}</small></td>
+                            <td>{{ row.account.name }}</td>
+                            <td class="text-end fw-semibold">₹{{ row.amount|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr>
+                            <td></td>
+                            <td class="text-muted">Retained Earnings (Net Profit)</td>
+                            <td class="text-end fw-semibold {% if retained_earnings >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                ₹{{ retained_earnings|floatformat:2 }}
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:#ede9fe">
+                            <td colspan="2" class="fw-bold">Total Equity</td>
+                            <td class="text-end fw-bold" style="color:#7c3aed">₹{{ total_equity|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Grand Total -->
+        <div class="card mt-2">
+            <div class="card-body py-2 d-flex justify-content-between">
+                <span class="fw-bold">Total Liabilities + Equity</span>
+                <span class="fw-bold text-primary">₹{{ total_liabilities_equity|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Balance Check -->
+<div class="mt-3 text-center">
+    {% if balanced %}
+    <span class="badge bg-success p-2"><i class="bi bi-check-circle me-2"></i>Balance Sheet is Balanced ✓</span>
+    {% else %}
+    <span class="badge bg-danger p-2"><i class="bi bi-x-circle me-2"></i>Balance Sheet is NOT balanced — check for missing entries</span>
+    {% endif %}
+    <div class="text-muted small mt-1">As of: {{ as_of_date }}</div>
+</div>
+{% endblock %}

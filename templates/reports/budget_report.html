@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block page_title %}Budget vs Actual{% endblock %}
+
+{% block content %}
+<div class="card mb-3 no-print">
+    <div class="card-body">
+        <form class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Month</label>
+                <input type="month" name="month" class="form-control" value="{{ sel_month|date:'Y-m' }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Compare</button>
+            </div>
+            <div class="col-md-2 ms-auto text-end">
+                <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i>Print
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h6>Budget vs Actual Performance ({{ sel_month|date:'F Y' }})</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered report-table mb-0">
+            <thead>
+                <tr>
+                    <th>Account</th>
+                    <th class="text-end">Budgeted Amount</th>
+                    <th class="text-end">Actual Movement</th>
+                    <th class="text-end">Variance (B-A)</th>
+                    <th class="text-end">% Performance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.account.code }} - {{ row.account.name }}</td>
+                    <td class="text-end">₹{{ row.budget|floatformat:2 }}</td>
+                    <td class="text-end">₹{{ row.actual|floatformat:2 }}</td>
+                    <td class="text-end {% if row.variance < 0 %}text-danger{% else %}text-success{% endif %}">
+                        ₹{{ row.variance|floatformat:2 }}
+                    </td>
+                    <td class="text-end">
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar {% if row.percent > 100 %}bg-warning{% elif row.percent > 80 %}bg-success{% else %}bg-info{% endif %}" 
+                                 style="width: {% if row.percent > 100 %}100{% else %}{{ row.percent }}{% endif %}%"></div>
+                        </div>
+                        <small class="text-muted">{{ row.percent|floatformat:1 }}%</small>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center py-4">No budgets set for this month. Go to Masters > Budgets to add targets.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

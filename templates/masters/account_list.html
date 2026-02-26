@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block page_title %}Chart of Accounts{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 fw-bold">Chart of Accounts</h5>
+    {% if user.is_admin %}<a href="{% url 'account_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Add Account</a>{% endif %}
+</div>
+
+<!-- Category Filter -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <span class="text-muted small fw-semibold">Filter:</span>
+            <a href="{% url 'account_list' %}" class="btn btn-sm {% if not category_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
+            {% for val, label in categories %}
+            <a href="?category={{ val }}" class="btn btn-sm {% if category_filter == val %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Account Name</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th>Opening Balance</th>
+                    <th>Status</th>
+                    {% if user.is_admin %}<th>Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for acc in accounts %}
+                <tr>
+                    <td><code>{{ acc.code }}</code></td>
+                    <td class="fw-semibold">
+                        {% if acc.parent %}<span class="text-muted me-1">↳</span>{% endif %}
+                        {{ acc.name }}
+                        {% if acc.is_gst_account %}<span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem">GST</span>{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge rounded-pill
+                            {% if acc.category == 'assets' %}bg-primary
+                            {% elif acc.category == 'liabilities' %}bg-danger
+                            {% elif acc.category == 'income' %}bg-success
+                            {% elif acc.category == 'expenses' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ acc.get_category_display }}
+                        </span>
+                    </td>
+                    <td class="text-muted small">{{ acc.get_account_type_display }}</td>
+                    <td class="text-end">
+                        {% if acc.opening_balance %}
+                        ₹{{ acc.opening_balance|floatformat:2 }}
+                        <span class="text-muted small">({{ acc.get_opening_balance_type_display }})</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td><span class="badge {% if acc.is_active %}bg-success{% else %}bg-secondary{% endif %}">{% if acc.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+                    {% if user.is_admin %}
+                    <td>
+                        <a href="{% url 'account_edit' acc.pk %}" class="btn btn-xs btn-outline-primary me-1" style="padding:2px 8px;font-size:0.75rem"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'account_delete' acc.pk %}" class="btn btn-xs btn-outline-danger" style="padding:2px 8px;font-size:0.75rem"><i class="bi bi-trash"></i></a>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No accounts found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

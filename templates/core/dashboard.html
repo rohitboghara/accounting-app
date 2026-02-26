@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value">{{ total_vouchers }}</div>
+                    <div class="stat-label">Total Vouchers</div>
+                </div>
+                <i class="bi bi-receipt fs-2 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #059669, #047857);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value">{{ total_accounts }}</div>
+                    <div class="stat-label">Chart of Accounts</div>
+                </div>
+                <i class="bi bi-diagram-3 fs-2 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value">₹{{ income_total|floatformat:0 }}</div>
+                    <div class="stat-label">Total Income</div>
+                </div>
+                <i class="bi bi-graph-up fs-2 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card" style="background: {% if net_profit >= 0 %}linear-gradient(135deg, #0891b2, #0e7490){% else %}linear-gradient(135deg, #dc2626, #b91c1c){% endif %}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value">₹{{ net_profit|floatformat:0 }}</div>
+                    <div class="stat-label">Net {% if net_profit >= 0 %}Profit{% else %}Loss{% endif %}</div>
+                </div>
+                <i class="bi bi-{% if net_profit >= 0 %}trending-up{% else %}trending-down{% endif %} fs-2 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Chart -->
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6><i class="bi bi-bar-chart-line me-2 text-primary"></i>Income vs Expenses (Last 6 Months)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="trendChart" style="height: 250px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Vouchers -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6><i class="bi bi-clock-history me-2 text-primary"></i>Recent Vouchers</h6>
+                <a href="{% url 'voucher_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Voucher No.</th>
+                            <th>Date</th>
+                            <th>Narration</th>
+                            <th>Status</th>
+                            <th>By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in recent_vouchers %}
+                        <tr>
+                            <td><a href="{% url 'voucher_detail' v.pk %}" class="fw-semibold text-primary">{{ v.voucher_number }}</a></td>
+                            <td>{{ v.date|date:"d M Y" }}</td>
+                            <td class="text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ v.narration|default:"-" }}</td>
+                            <td>
+                                <span class="badge rounded-pill badge-{{ v.status }}">{{ v.get_status_display }}</span>
+                            </td>
+                            <td class="text-muted">{{ v.created_by.username }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted py-4">No vouchers yet. <a href="{% url 'voucher_create' %}">Create one</a></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6><i class="bi bi-lightning me-2 text-warning"></i>Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'voucher_create' %}" class="btn btn-primary btn-sm text-start">
+                        <i class="bi bi-plus-circle me-2"></i>New Journal Voucher
+                    </a>
+                    <a href="{% url 'ledger_report' %}" class="btn btn-outline-secondary btn-sm text-start">
+                        <i class="bi bi-book me-2"></i>View Ledger
+                    </a>
+                    <a href="{% url 'trial_balance' %}" class="btn btn-outline-secondary btn-sm text-start">
+                        <i class="bi bi-table me-2"></i>Trial Balance
+                    </a>
+                    <a href="{% url 'profit_loss' %}" class="btn btn-outline-secondary btn-sm text-start">
+                        <i class="bi bi-graph-up me-2"></i>Profit & Loss
+                    </a>
+                    <a href="{% url 'balance_sheet' %}" class="btn btn-outline-secondary btn-sm text-start">
+                        <i class="bi bi-bar-chart-steps me-2"></i>Balance Sheet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-bar-chart me-2 text-success"></i>P&L Summary</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between py-1 border-bottom">
+                    <span class="text-muted">Total Income</span>
+                    <span class="fw-semibold text-success">₹{{ income_total|floatformat:2 }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom">
+                    <span class="text-muted">Total Expenses</span>
+                    <span class="fw-semibold text-danger">₹{{ expense_total|floatformat:2 }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2 mt-1">
+                    <span class="fw-bold">Net {% if net_profit >= 0 %}Profit{% else %}Loss{% endif %}</span>
+                    <span class="fw-bold {% if net_profit >= 0 %}text-success{% else %}text-danger{% endif %}">₹{{ net_profit|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

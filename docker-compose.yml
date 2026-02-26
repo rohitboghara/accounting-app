@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: accounting_db
+    environment:
+      POSTGRES_DB: accounting_db
+      POSTGRES_USER: accounting_user
+      POSTGRES_PASSWORD: accounting_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U accounting_user -d accounting_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: accounting_web
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-change-this-in-production-please
+      - DATABASE_URL=postgresql://accounting_user:accounting_pass@db:5432/accounting_db
+      - ALLOWED_HOSTS=*
+      - CSRF_TRUSTED_ORIGINS=https://e64d-45-113-106-68.ngrok-free.app,https://*.ngrok-free.app,http://*.ngrok-free.app
+    volumes:
+      - .:/app
+      - static_files:/app/staticfiles
+      - media_files:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  static_files:
+  media_files:

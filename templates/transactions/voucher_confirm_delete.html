@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block page_title %}Delete Voucher{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-5">
+<div class="card border-danger">
+    <div class="card-header bg-danger text-white"><h6 class="mb-0">Confirm Delete</h6></div>
+    <div class="card-body">
+        <p>Delete voucher <strong>{{ voucher.voucher_number }}</strong> ({{ voucher.date|date:"d M Y" }})?</p>
+        <p class="text-danger small">This will delete all journal lines. Cannot be undone.</p>
+        <form method="post" class="d-flex gap-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Delete</button>
+            <a href="{% url 'voucher_detail' voucher.pk %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}

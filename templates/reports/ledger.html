@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block page_title %}Ledger Report{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 fw-bold">Ledger Report</h5>
+    {% if selected_account %}<button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print"><i class="bi bi-printer me-1"></i>Print</button>{% endif %}
+</div>
+
+<!-- Filters -->
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label mb-1 small">Account <span class="text-danger">*</span></label>
+                <select name="account_id" class="form-select form-select-sm" required>
+                    <option value="">-- Select Account --</option>
+                    {% regroup accounts by get_category_display as cat_list %}
+                    {% for cat in cat_list %}
+                    <optgroup label="{{ cat.grouper }}">
+                        {% for acc in cat.list %}
+                        <option value="{{ acc.id }}" {% if account_id == acc.id|stringformat:"s" %}selected{% endif %}>{{ acc.code }} - {{ acc.name }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1 small">From Date</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1 small">To Date</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i>Show</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if selected_account %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <div>
+            <h6 class="mb-0">{{ selected_account.code }} — {{ selected_account.name }}</h6>
+            <small class="text-muted">{{ selected_account.get_category_display }} | {{ date_from }} to {{ date_to }}</small>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table report-table mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Voucher No.</th>
+                    <th>Description</th>
+                    <th class="text-end">Debit (₹)</th>
+                    <th class="text-end">Credit (₹)</th>
+                    <th class="text-end">Balance (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="table-light">
+                    <td colspan="5" class="fw-semibold">Opening Balance</td>
+                    <td class="text-end fw-bold">
+                        {% if opening_balance >= 0 %}₹{{ opening_balance|floatformat:2 }} Dr
+                        {% else %}₹{{ opening_balance|floatformat:2|slice:"1:" }} Cr{% endif %}
+                    </td>
+                </tr>
+                {% for entry in ledger_entries %}
+                <tr>
+                    <td>{{ entry.date|date:"d M Y" }}</td>
+                    <td><a href="{% url 'voucher_list' %}?search={{ entry.voucher_number }}" class="text-primary">{{ entry.voucher_number }}</a></td>
+                    <td class="text-muted">{{ entry.description|default:"-" }}</td>
+                    <td class="text-end text-primary">{% if entry.debit %}₹{{ entry.debit|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td class="text-end text-success">{% if entry.credit %}₹{{ entry.credit|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td class="text-end fw-semibold">
+                        {% if entry.balance >= 0 %}₹{{ entry.balance|floatformat:2 }}
+                        {% else %}<span class="text-danger">₹{{ entry.balance|floatformat:2|slice:"1:" }} Cr</span>{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-3">No transactions in this period.</td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-dark">
+                    <td colspan="5" class="fw-bold">Closing Balance</td>
+                    <td class="text-end fw-bold">
+                        {% if closing_balance >= 0 %}₹{{ closing_balance|floatformat:2 }} Dr
+                        {% else %}<span class="text-warning">₹{{ closing_balance|floatformat:2|slice:"1:" }} Cr</span>{% endif %}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Select an account and date range to view the ledger.</div>
+{% endif %}
+{% endblock %}

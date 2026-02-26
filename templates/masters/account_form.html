@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+    <div class="card-header"><h6>{{ title }}</h6></div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Account Code <span class="text-danger">*</span></label>
+                    {{ form.code }}
+                    {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Account Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Category <span class="text-danger">*</span></label>
+                    {{ form.category }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Account Type</label>
+                    {{ form.account_type }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Parent Account</label>
+                    {{ form.parent }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Opening Balance (₹)</label>
+                    {{ form.opening_balance }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Balance Type</label>
+                    {{ form.opening_balance_type }}
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check">
+                        {{ form.is_gst_account }}
+                        <label class="form-check-label">GST Account</label>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check me-1"></i>Save</button>
+                <a href="{% url 'account_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}

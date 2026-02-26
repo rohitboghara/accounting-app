@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block page_title %}Bulk Import Vouchers{% endblock %}
+
+{% block content %}
+<div class="card col-md-6 mx-auto">
+    <div class="card-header">
+        <h6><i class="bi bi-file-earmark-arrow-up me-2"></i>Upload CSV File</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Select CSV File</label>
+                <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+            </div>
+            
+            <div class="alert alert-info small">
+                <h7 class="fw-bold"><i class="bi bi-info-circle me-1"></i>Required CSV Format:</h7>
+                <p class="mb-1 mt-1">Headers must be: <code>date, voucher_number, account_code, description, debit, credit</code></p>
+                <ul class="mb-0">
+                    <li>Date format: YYYY-MM-DD</li>
+                    <li>Account code must match existing accounts</li>
+                    <li>Each voucher number should have balanced debit/credit lines</li>
+                </ul>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-cloud-upload me-1"></i>Start Import
+                </button>
+                <a href="{% url 'voucher_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

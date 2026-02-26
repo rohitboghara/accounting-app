@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block page_title %}Company Profile{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6><i class="bi bi-building me-2"></i>Company Profile</h6>
+        {% if company %}<span class="badge bg-success">FY {{ company.financial_year }}</span>{% endif %}
+    </div>
+    <div class="card-body">
+        {% if not user.is_admin %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>Only admins can edit the company profile.
+        </div>
+        {% endif %}
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Company Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Financial Year</label>
+                    {{ form.financial_year }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">GSTIN</label>
+                    {{ form.gstin }}
+                    <div class="form-text">15-digit GSTIN number</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">PAN</label>
+                    {{ form.pan }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Address</label>
+                    {{ form.address }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">City</label>
+                    {{ form.city }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">State</label>
+                    {{ form.state }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Pincode</label>
+                    {{ form.pincode }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phone</label>
+                    {{ form.phone }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    {{ form.email }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Company Logo</label>
+                    {{ form.logo }}
+                    {% if company.logo %}<div class="mt-1"><img src="{{ company.logo.url }}" height="50" class="rounded"></div>{% endif %}
+                </div>
+            </div>
+            {% if user.is_admin %}
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check me-1"></i>Save Profile</button>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}

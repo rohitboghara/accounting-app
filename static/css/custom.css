@@ -1,0 +1,7 @@
+/* Custom overrides - most styles in base.html */
+@media print {
+    .no-print { display: none !important; }
+    body { background: white !important; }
+    .main-wrapper { margin-left: 0 !important; }
+    .card { border: 1px solid #ddd !important; box-shadow: none !important; }
+}

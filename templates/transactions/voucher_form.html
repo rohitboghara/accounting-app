@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block extra_css %}
+<style>
+.voucher-table th { font-size: 0.75rem; white-space: nowrap; background: #f8fafc; }
+.voucher-table td { padding: 0.4rem 0.5rem; vertical-align: middle; }
+.voucher-table .form-control, .voucher-table .form-select { font-size: 0.8rem; padding: 0.3rem 0.5rem; }
+.gst-section { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 0.5rem; padding: 0.75rem; margin-top: 0.5rem; }
+.line-row { border-bottom: 1px solid #f1f5f9; }
+.balance-indicator { font-size: 0.875rem; padding: 0.75rem 1rem; border-radius: 0.5rem; }
+.delete-line-btn { color: #ef4444; border: none; background: none; padding: 0.2rem 0.4rem; border-radius: 0.25rem; }
+.delete-line-btn:hover { background: #fee2e2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 fw-bold">{{ title }}</h5>
+    <div class="d-flex gap-2 no-print">
+        <span class="text-muted small align-self-center"><kbd>Alt+N</kbd> Add Line | <kbd>Alt+S</kbd> Save</span>
+        <a href="{% url 'voucher_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    </div>
+</div>
+
+<form method="post" id="voucherForm" enctype="multipart/form-data">
+{% csrf_token %}
+
+<!-- Voucher Header -->
+<div class="card mb-3">
+    <div class="card-header"><h6><i class="bi bi-info-circle me-2"></i>Voucher Details</h6></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Voucher Number <span class="text-danger">*</span></label>
+                <input type="text" name="voucher_number" class="form-control" 
+                       value="{{ voucher.voucher_number|default:voucher_number }}" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Date <span class="text-danger">*</span></label>
+                <input type="date" name="date" class="form-control" 
+                       value="{{ voucher.date|date:'Y-m-d'|default:today }}" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Reference</label>
+                <input type="text" name="reference" class="form-control" 
+                       value="{{ voucher.reference|default:'' }}" placeholder="Invoice/Ref no.">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="draft" {% if voucher.status == 'draft' or not voucher %}selected{% endif %}>Draft</option>
+                    <option value="posted" {% if voucher.status == 'posted' %}selected{% endif %}>Posted</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Attachments (PDF/Images)</label>
+                <input type="file" name="attachments" class="form-control form-control-sm" multiple>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Narration</label>
+                <textarea name="narration" class="form-control" rows="2" 
+                          placeholder="Description of this journal entry">{{ voucher.narration|default:'' }}</textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Journal Lines -->
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6><i class="bi bi-table me-2"></i>Journal Lines</h6>
+        <button type="button" class="btn btn-success btn-sm" onclick="addLine()">
+            <i class="bi bi-plus me-1"></i>Add Line
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table voucher-table mb-0" id="journalTable">
+                <thead>
+                    <tr>
+                        <th style="width:30px">#</th>
+                        <th style="width:220px">Account <span class="text-danger">*</span></th>
+                        <th>Description</th>
+                        <th style="width:130px">Debit (₹)</th>
+                        <th style="width:130px">Credit (₹)</th>
+                        <th style="width:50px">GST</th>
+                        <th style="width:40px"></th>
+                    </tr>
+                </thead>
+                <tbody id="linesBody">
+                    <!-- Lines injected by JS -->
+                </tbody>
+                <tfoot>
+                    <tr style="background:#f8fafc">
+                        <td colspan="3" class="text-end fw-bold pe-3">Totals:</td>
+                        <td><strong id="totalDebit" class="text-primary">₹0.00</strong></td>
+                        <td><strong id="totalCredit" class="text-primary">₹0.00</strong></td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <tr id="balanceRow" class="d-none">
+                        <td colspan="7" class="p-2">
+                            <div id="balanceMsg" class="balance-indicator"></div>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="d-flex gap-2 mb-4">
+    <button type="submit" class="btn btn-primary" id="saveBtn">
+        <i class="bi bi-check me-1"></i>Save Voucher
+    </button>
+    <a href="{% url 'voucher_list' %}" class="btn btn-outline-secondary">Cancel</a>
+    <div class="ms-auto text-muted small d-flex align-items-center">
+        <i class="bi bi-info-circle me-1"></i>Debit = Credit for a valid entry
+    </div>
+</div>
+
+</form>
+
+<!-- GST Row Template (hidden) -->
+<template id="gstTemplate">
+<tr class="gst-detail-row">
+    <td colspan="7" class="p-0">
+        <div class="gst-section mx-2 mb-1">
+            <div class="row g-2 align-items-end">
+                <div class="col-sm-3">
+                    <label class="form-label mb-1" style="font-size:0.75rem">GST Type</label>
+                    <select name="gst_type[]" class="form-select form-select-sm">
+                        <option value="intra">Intra-State (CGST+SGST)</option>
+                        <option value="inter">Inter-State (IGST)</option>
+                    </select>
+                </div>
+                <div class="col-sm-2">
+                    <label class="form-label mb-1" style="font-size:0.75rem">GST Rate %</label>
+                    <select name="gst_rate[]" class="form-select form-select-sm gst-rate-sel">
+                        <option value="0">0%</option>
+                        <option value="5">5%</option>
+                        <option value="12">12%</option>
+                        <option value="18" selected>18%</option>
+                        <option value="28">28%</option>
+                    </select>
+                </div>
+                <div class="col-sm-2">
+                    <label class="form-label mb-1" style="font-size:0.75rem">Taxable Value</label>
+                    <input type="number" name="taxable_value[]" class="form-control form-control-sm taxable-val" step="0.01" placeholder="0.00">
+                </div>
+                <div class="col-sm-1">
+                    <label class="form-label mb-1" style="font-size:0.75rem">CGST</label>
+                    <input type="number" name="cgst_amount[]" class="form-control form-control-sm cgst-amt" step="0.01" placeholder="0.00" readonly>
+                </div>
+                <div class="col-sm-1">
+                    <label class="form-label mb-1" style="font-size:0.75rem">SGST</label>
+                    <input type="number" name="sgst_amount[]" class="form-control form-control-sm sgst-amt" step="0.01" placeholder="0.00" readonly>
+                </div>
+                <div class="col-sm-1">
+                    <label class="form-label mb-1" style="font-size:0.75rem">IGST</label>
+                    <input type="number" name="igst_amount[]" class="form-control form-control-sm igst-amt" step="0.01" placeholder="0.00" readonly>
+                </div>
+                <div class="col-sm-2 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-success calc-gst-btn" style="font-size:0.75rem">
+                        <i class="bi bi-calculator me-1"></i>Calculate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </td>
+</tr>
+</template>
+
+<!-- Account data -->
+<script>
+const ACCOUNTS = [
+    {% for acc in accounts %}
+    {id: {{ acc.id }}, code: "{{ acc.code }}", name: "{{ acc.name }}", category: "{{ acc.category }}"},
+    {% endfor %}
+];
+
+// Pre-existing lines data (for edit mode)
+const EXISTING_LINES = {{ lines_json|default:"[]" }};
+let lineCount = 0;
+
+function buildAccountSelect(selectedId) {
+    let html = '<option value="">-- Select Account --</option>';
+    const categories = ['assets', 'liabilities', 'income', 'expenses', 'equity'];
+    const catLabels = {assets:'Assets', liabilities:'Liabilities', income:'Income', expenses:'Expenses', equity:'Equity'};
+    categories.forEach(cat => {
+        const catAccounts = ACCOUNTS.filter(a => a.category === cat);
+        if (catAccounts.length > 0) {
+            html += `<optgroup label="${catLabels[cat]}">`;
+            catAccounts.forEach(a => {
+                const sel = a.id == selectedId ? 'selected' : '';
+                html += `<option value="${a.id}" ${sel}>${a.code} - ${a.name}</option>`;
+            });
+            html += '</optgroup>';
+        }
+    });
+    return html;
+}
+
+function addLine(data={}) {
+    lineCount++;
+    const idx = lineCount;
+    const hasGst = data.has_gst || false;
+    
+    const tbody = document.getElementById('linesBody');
+    const tr = document.createElement('tr');
+    tr.className = 'line-row';
+    tr.id = `line-${idx}`;
+    tr.innerHTML = `
+        <td class="text-muted">${idx}</td>
+        <td>
+            <select name="account_id[]" class="form-select account-select" required onchange="updateTotals()">
+                ${buildAccountSelect(data.account_id || '')}
+            </select>
+            <input type="hidden" name="has_gst[]" class="has-gst-hidden" value="${hasGst}">
+        </td>
+        <td><input type="text" name="description[]" class="form-control" value="${data.description || ''}" placeholder="Line description"></td>
+        <td><input type="number" name="debit_amount[]" class="form-control debit-input" step="0.01" min="0" value="${data.debit_amount || ''}" placeholder="0.00" oninput="updateTotals(); autoZeroCredit(this)"></td>
+        <td><input type="number" name="credit_amount[]" class="form-control credit-input" step="0.01" min="0" value="${data.credit_amount || ''}" placeholder="0.00" oninput="updateTotals(); autoZeroDebit(this)"></td>
+        <td class="text-center">
+            <div class="form-check d-flex justify-content-center">
+                <input class="form-check-input gst-toggle" type="checkbox" ${hasGst ? 'checked' : ''} 
+                       onchange="toggleGst(this, ${idx})" title="Has GST">
+            </div>
+        </td>
+        <td><button type="button" class="delete-line-btn" onclick="removeLine(${idx})" title="Remove"><i class="bi bi-x-lg"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+
+    // Init Select2 for this row
+    $(`#line-${idx} .account-select`).select2({
+        theme: 'bootstrap-5',
+        dropdownParent: $(`#line-${idx}`).parent(),
+        width: '100%'
+    });
+
+    // Insert GST row (hidden or visible)
+    const gstTmpl = document.getElementById('gstTemplate');
+    const gstClone = gstTmpl.content.cloneNode(true);
+    const gstRow = gstClone.querySelector('tr');
+    gstRow.id = `gst-row-${idx}`;
+    if (!hasGst) gstRow.style.display = 'none';
+    tbody.appendChild(gstRow);
+
+    // Populate existing GST data
+    if (data.has_gst) {
+        const row = document.getElementById(`gst-row-${idx}`);
+        if (row) {
+            if (data.gst_type) row.querySelector('[name="gst_type[]"]').value = data.gst_type;
+            if (data.gst_rate) row.querySelector('.gst-rate-sel').value = data.gst_rate;
+            if (data.taxable_value) row.querySelector('.taxable-val').value = data.taxable_value;
+            if (data.cgst_amount) row.querySelector('.cgst-amt').value = data.cgst_amount;
+            if (data.sgst_amount) row.querySelector('.sgst-amt').value = data.sgst_amount;
+            if (data.igst_amount) row.querySelector('.igst-amt').value = data.igst_amount;
+        }
+    }
+
+    // Attach calculate button
+    const calcBtn = document.getElementById(`gst-row-${idx}`)?.querySelector('.calc-gst-btn');
+    if (calcBtn) {
+        calcBtn.addEventListener('click', () => calculateGst(idx));
+    }
+
+    updateTotals();
+}
+
+function removeLine(idx) {
+    const lines = document.querySelectorAll('.line-row');
+    if (lines.length <= 1) {
+        alert('A voucher must have at least one line.');
+        return;
+    }
+    document.getElementById(`line-${idx}`)?.remove();
+    document.getElementById(`gst-row-${idx}`)?.remove();
+    updateTotals();
+}
+
+function toggleGst(checkbox, idx) {
+    const gstRow = document.getElementById(`gst-row-${idx}`);
+    const hiddenInput = document.querySelector(`#line-${idx} .has-gst-hidden`);
+    if (gstRow) gstRow.style.display = checkbox.checked ? '' : 'none';
+    if (hiddenInput) hiddenInput.value = checkbox.checked ? 'true' : 'false';
+}
+
+function calculateGst(idx) {
+    const row = document.getElementById(`gst-row-${idx}`);
+    if (!row) return;
+    const taxableVal = parseFloat(row.querySelector('.taxable-val').value) || 0;
+    const rate = parseFloat(row.querySelector('.gst-rate-sel').value) || 0;
+    const gstType = row.querySelector('[name="gst_type[]"]').value;
+    const totalTax = (taxableVal * rate) / 100;
+    
+    if (gstType === 'intra') {
+        row.querySelector('.cgst-amt').value = (totalTax / 2).toFixed(2);
+        row.querySelector('.sgst-amt').value = (totalTax / 2).toFixed(2);
+        row.querySelector('.igst-amt').value = '0.00';
+    } else {
+        row.querySelector('.cgst-amt').value = '0.00';
+        row.querySelector('.sgst-amt').value = '0.00';
+        row.querySelector('.igst-amt').value = totalTax.toFixed(2);
+    }
+}
+
+function autoZeroCredit(input) {
+    if (parseFloat(input.value) > 0) {
+        const row = input.closest('tr');
+        row.querySelector('.credit-input').value = '';
+    }
+}
+function autoZeroDebit(input) {
+    if (parseFloat(input.value) > 0) {
+        const row = input.closest('tr');
+        row.querySelector('.debit-input').value = '';
+    }
+}
+
+function updateTotals() {
+    let totalDebit = 0, totalCredit = 0;
+    document.querySelectorAll('.debit-input').forEach(i => totalDebit += parseFloat(i.value) || 0);
+    document.querySelectorAll('.credit-input').forEach(i => totalCredit += parseFloat(i.value) || 0);
+    
+    document.getElementById('totalDebit').textContent = '₹' + totalDebit.toFixed(2);
+    document.getElementById('totalCredit').textContent = '₹' + totalCredit.toFixed(2);
+    
+    const balRow = document.getElementById('balanceRow');
+    const balMsg = document.getElementById('balanceMsg');
+    const diff = Math.abs(totalDebit - totalCredit);
+    
+    if (totalDebit > 0 || totalCredit > 0) {
+        balRow.classList.remove('d-none');
+        if (diff < 0.005) {
+            balMsg.className = 'balance-indicator alert alert-success py-2 mb-0';
+            balMsg.innerHTML = '<i class="bi bi-check-circle me-2"></i><strong>Balanced!</strong> Debit = Credit = ₹' + totalDebit.toFixed(2);
+        } else {
+            const side = totalDebit > totalCredit ? 'Credit' : 'Debit';
+            balMsg.className = 'balance-indicator alert alert-danger py-2 mb-0';
+            balMsg.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i><strong>Not Balanced!</strong> Difference: ₹${diff.toFixed(2)} — Add ₹${diff.toFixed(2)} to ${side} side`;
+        }
+    } else {
+        balRow.classList.add('d-none');
+    }
+}
+
+// Form validation before submit
+document.getElementById('voucherForm').addEventListener('submit', function(e) {
+    let totalDebit = 0, totalCredit = 0;
+    document.querySelectorAll('.debit-input').forEach(i => totalDebit += parseFloat(i.value) || 0);
+    document.querySelectorAll('.credit-input').forEach(i => totalCredit += parseFloat(i.value) || 0);
+    
+    if (Math.abs(totalDebit - totalCredit) >= 0.01) {
+        e.preventDefault();
+        alert(`Voucher not balanced!\nTotal Debit: ₹${totalDebit.toFixed(2)}\nTotal Credit: ₹${totalCredit.toFixed(2)}\nDifference: ₹${Math.abs(totalDebit - totalCredit).toFixed(2)}`);
+        return false;
+    }
+    if (totalDebit === 0) {
+        e.preventDefault();
+        alert('Voucher amounts cannot be zero.');
+        return false;
+    }
+});
+
+// Initialize lines
+document.addEventListener('DOMContentLoaded', function() {
+    if (EXISTING_LINES.length > 0) {
+        EXISTING_LINES.forEach(line => addLine(line));
+    } else {
+        // Default 2 blank lines
+        addLine();
+        addLine();
+    }
+});
+</script>
+{% endblock %}

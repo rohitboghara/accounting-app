@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block page_title %}AR Aging Report{% endblock %}
+
+{% block content %}
+<div class="card mb-3 no-print">
+    <div class="card-body">
+        <form class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">As of Date</label>
+                <input type="date" name="as_of_date" class="form-control" value="{{ as_of_date }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Generate</button>
+            </div>
+            <div class="col-md-2 ms-auto text-end">
+                <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i>Print
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h6>Accounts Receivable Aging (As of {{ as_of_date }})</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered report-table mb-0">
+            <thead>
+                <tr>
+                    <th>Account</th>
+                    <th class="text-end">Current</th>
+                    <th class="text-end">31-60 Days</th>
+                    <th class="text-end">61-90 Days</th>
+                    <th class="text-end">Over 90 Days</th>
+                    <th class="text-end">Total Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in report_data %}
+                <tr>
+                    <td>{{ row.account.code }} - {{ row.account.name }}</td>
+                    <td class="text-end">₹{{ row.buckets.current|floatformat:2 }}</td>
+                    <td class="text-end">₹{{ row.buckets.30_days|floatformat:2 }}</td>
+                    <td class="text-end">₹{{ row.buckets.60_days|floatformat:2 }}</td>
+                    <td class="text-end text-danger">₹{{ row.buckets.90_plus|floatformat:2 }}</td>
+                    <td class="text-end fw-bold">₹{{ row.buckets.total|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center py-4">No outstanding receivables found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

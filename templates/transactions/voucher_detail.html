@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block page_title %}Voucher: {{ voucher.voucher_number }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 fw-bold">{{ voucher.voucher_number }}</h5>
+    <div class="d-flex gap-2 no-print">
+        {% if voucher.status == 'draft' %}
+        <a href="{% url 'voucher_edit' voucher.pk %}" class="btn btn-primary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
+        {% if user.is_admin %}
+        <form method="post" action="{% url 'voucher_post' voucher.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Post this voucher?')">
+                <i class="bi bi-check-all me-1"></i>Post
+            </button>
+        </form>
+        {% endif %}
+        {% endif %}
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer me-1"></i>Print</button>
+        <a href="{% url 'voucher_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="text-muted small">Voucher Number</div>
+                <div class="fw-bold">{{ voucher.voucher_number }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Date</div>
+                <div class="fw-bold">{{ voucher.date|date:"d M Y" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Status</div>
+                <span class="badge badge-{{ voucher.status }} rounded-pill">{{ voucher.get_status_display }}</span>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Reference</div>
+                <div>{{ voucher.reference|default:"-" }}</div>
+            </div>
+            {% if voucher.narration %}
+            <div class="col-12">
+                <div class="text-muted small">Narration</div>
+                <div>{{ voucher.narration }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h6><i class="bi bi-table me-2"></i>Journal Lines</h6></div>
+    <div class="table-responsive">
+        <table class="table report-table mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Account</th>
+                    <th>Description</th>
+                    <th class="text-end">Debit (₹)</th>
+                    <th class="text-end">Credit (₹)</th>
+                    <th>GST Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for line in lines %}
+                <tr>
+                    <td class="text-muted">{{ forloop.counter }}</td>
+                    <td>
+                        <div class="fw-semibold">{{ line.account.name }}</div>
+                        <small class="text-muted">{{ line.account.code }} | {{ line.account.get_category_display }}</small>
+                    </td>
+                    <td class="text-muted">{{ line.description|default:"-" }}</td>
+                    <td class="text-end fw-semibold text-primary">{% if line.debit_amount %}₹{{ line.debit_amount|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td class="text-end fw-semibold text-success">{% if line.credit_amount %}₹{{ line.credit_amount|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td>
+                        {% if line.has_gst %}
+                        <small class="text-muted">
+                            Rate: {{ line.gst_rate }}% |
+                            Taxable: ₹{{ line.taxable_value|floatformat:2 }}<br>
+                            {% if line.gst_type == 'intra' %}
+                            CGST: ₹{{ line.cgst_amount|floatformat:2 }} | SGST: ₹{{ line.sgst_amount|floatformat:2 }}
+                            {% else %}
+                            IGST: ₹{{ line.igst_amount|floatformat:2 }}
+                            {% endif %}
+                        </small>
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" class="text-end fw-bold">Total:</td>
+                    <td class="text-end fw-bold text-primary">₹{{ voucher.get_total_debit|floatformat:2 }}</td>
+                    <td class="text-end fw-bold text-success">₹{{ voucher.get_total_credit|floatformat:2 }}</td>
+                    <td>
+                        {% if voucher.is_balanced %}
+                        <span class="badge bg-success"><i class="bi bi-check me-1"></i>Balanced</span>
+                        {% else %}
+                        <span class="badge bg-danger"><i class="bi bi-x me-1"></i>Unbalanced</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<div class="text-muted small no-print">
+    Created by {{ voucher.created_by.get_full_name|default:voucher.created_by.username }} on {{ voucher.created_at|date:"d M Y H:i" }}
+    | Last updated: {{ voucher.updated_at|date:"d M Y H:i" }}
+</div>
+{% endblock %}

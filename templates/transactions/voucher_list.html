@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block page_title %}Journal Vouchers{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 fw-bold">Journal Vouchers</h5>
+    <a href="{% url 'voucher_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>New Voucher</a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1 small">From Date</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1 small">To Date</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1 small">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                    <option value="posted" {% if status_filter == 'posted' %}selected{% endif %}>Posted</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-filter me-1"></i>Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Voucher No.</th>
+                    <th>Date</th>
+                    <th>Narration</th>
+                    <th>Reference</th>
+                    <th class="text-end">Total (Dr/Cr)</th>
+                    <th>Status</th>
+                    <th>Created By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vouchers %}
+                <tr>
+                    <td><a href="{% url 'voucher_detail' v.pk %}" class="fw-semibold text-primary">{{ v.voucher_number }}</a></td>
+                    <td>{{ v.date|date:"d M Y" }}</td>
+                    <td class="text-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ v.narration|default:"-" }}</td>
+                    <td class="text-muted small">{{ v.reference|default:"-" }}</td>
+                    <td class="text-end fw-semibold">₹{{ v.get_total_debit|floatformat:2 }}</td>
+                    <td><span class="badge rounded-pill badge-{{ v.status }}">{{ v.get_status_display }}</span></td>
+                    <td class="text-muted small">{{ v.created_by.username }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'voucher_detail' v.pk %}" class="btn btn-xs btn-outline-secondary" style="padding:2px 7px;font-size:0.75rem"><i class="bi bi-eye"></i></a>
+                            <a href="{% url 'voucher_edit' v.pk %}" class="btn btn-xs btn-outline-primary" style="padding:2px 7px;font-size:0.75rem"><i class="bi bi-pencil"></i></a>
+                            {% if user.is_admin %}
+                            <a href="{% url 'voucher_delete' v.pk %}" class="btn btn-xs btn-outline-danger" style="padding:2px 7px;font-size:0.75rem"><i class="bi bi-trash"></i></a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No vouchers found. <a href="{% url 'voucher_create' %}">Create one</a></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
