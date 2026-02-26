@@ -16,6 +16,9 @@ done
 
 echo "Database is up!"
 
+echo "Cleaning static files..."
+rm -rf /app/staticfiles/*
+
 echo "Running migrations..."
 python manage.py migrate --noinput
 
