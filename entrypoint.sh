@@ -3,7 +3,6 @@ set -e
 
 echo "Waiting for database..."
 
-# DATABASE_URL માંથી હોસ્ટ અને પોર્ટ કાઢવા માટે પાયથોન સ્ક્રિપ્ટ
 DB_HOST=$(python -c "from urllib.parse import urlparse; import os; url = urlparse(os.environ.get('DATABASE_URL', 'postgres://db:5432')); print(url.hostname)")
 DB_PORT=$(python -c "from urllib.parse import urlparse; import os; url = urlparse(os.environ.get('DATABASE_URL', 'postgres://db:5432')); print(url.port or 5432)")
 
@@ -16,14 +15,11 @@ done
 
 echo "Database is up!"
 
-echo "Cleaning static files..."
-rm -rf /app/staticfiles/*
-
 echo "Running migrations..."
 python manage.py migrate --noinput
 
 echo "Collecting static files..."
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput --clear
 
 echo "Loading seed data..."
 python manage.py seed_data || echo "Seed data already loaded or failed - continuing..."
@@ -31,8 +27,7 @@ python manage.py seed_data || echo "Seed data already loaded or failed - continu
 echo "Starting server..."
 exec gunicorn config.wsgi:application \
     --bind 0.0.0.0:8000 \
-    --workers 2 \
-    --reload \
+    --workers 1 \
     --timeout 120 \
     --access-logfile - \
     --error-logfile -
